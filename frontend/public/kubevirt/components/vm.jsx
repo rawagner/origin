@@ -67,14 +67,22 @@ const PhaseColumn = props => {
 const FirehoseResourceLink = props => {
   const data = props.flatten(props.resources);
   if (data.length > 0){
-    const name = data[0].metadata.name;
-    const namespace = data[0].metadata.namespace;
-    const title = data[0].metadata.uid;
-    const kind = data[0].kind || PodModel.kind;
-    return <ResourceLink kind={kind} name={name} namespace={namespace} title={title} />;
+    let resource = data[0];
+    if (props.filter) {
+      resource = props.filter(data);
+    }
+    if (resource) {
+      const name = resource.metadata.name;
+      const namespace = resource.metadata.namespace;
+      const title = resource.metadata.uid;
+      const kind = resource.kind || PodModel.kind;
+      return <ResourceLink kind={kind} name={name} namespace={namespace} title={title} />;
+    }
   }
   return dashes;
 };
+
+const findPod = (data, name) => data.find(p => p.metadata.name.startsWith(`virt-launcher-${name}`));
 
 const getResourceKind = (kind, namespace, labelMatcher) => {
   let res = { kind:kind, namespaced: true, namespace: namespace, isList: true, prop: kind};
@@ -117,7 +125,7 @@ export const VMRow = ({obj: vm}) => {
     </div>
     <div className="col-lg-2 col-md-2 col-sm-2 hidden-xs">
       <Firehose resources={podResources} flatten={getFlattenForKind(PodModel.kind)}>
-        <FirehoseResourceLink />
+        <FirehoseResourceLink filter={data => findPod(data, vm.metadata.name)} />
       </Firehose>
     </div>
   </ResourceRow>;
@@ -154,7 +162,7 @@ const VMStatus = (props) => {
         <dt>Pod:</dt>
         <dd>
           <Firehose resources={podResources} flatten={getFlattenForKind(PodModel.kind)}>
-            <FirehoseResourceLink />
+            <FirehoseResourceLink filter={data => findPod(data, props.vm.metadata.name)} />
           </Firehose>
         </dd>
       </dl>
